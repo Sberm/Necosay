@@ -101,7 +101,7 @@ void copy(struct vec *vec, void *src, size_t len)
     vec->head += len;
 
     assert(vec->head < vec->size);
-    ((char *)vec->raw)[vec->head] = 0;
+    ((char *)vec->raw)[vec->head] = 0; // null term
 }
 
 void free_vec(struct vec *vec)
