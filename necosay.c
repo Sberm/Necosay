@@ -1,11 +1,9 @@
-#include <errno.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 
 #define PADDING 3
-#define MAX_BUF 1024
 
 struct vec {
     size_t size;
@@ -119,13 +117,13 @@ void free_vec(struct vec *vec)
 void init(struct vec *vec)
 {
     if (!vec) {
-        printf("e v\n");
+        printf("empty vector\n");
         return;
     }
 
     vec->raw = malloc(VEC_MIN);
     if (!vec->raw) {
-        printf("m f\n");
+        printf("malloc failed\n");
         return;
     }
     vec->size = VEC_MIN;
