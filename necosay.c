@@ -154,11 +154,20 @@ int main(int argc, char **argv)
 
         while (getline(&line, &line_cap, stdin) > 0) {
             size_t cur_line_len = strlen(line);
+            size_t tab2space = cur_line_len;
             
-            if (line_max < cur_line_len)
-                line_max = cur_line_len;
+            for (int i = 0; i < cur_line_len; i++) {
+                if (line[i] == '\t') {
+                    for (int i = 0; i < 4; i++)
+                        copy(&vec, &" ", 1);
+                    tab2space += 3;
+                } else {
+                    copy(&vec, &line[i], 1);
+                }
+            }
 
-            copy(&vec, line, cur_line_len);
+            if (line_max < tab2space)
+                line_max = tab2space;
         }
         print_neco(&vec, line_max);
         free_vec(&vec);
