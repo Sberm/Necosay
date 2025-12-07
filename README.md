@@ -70,3 +70,6 @@ sh build.sh
 ```
 sh uninstall.sh
 ```
+
+#### Details
+`Necosay` will translate all the tabs into 4 spaces. This is crutial for alignment, and I don't really care what you think about this.
