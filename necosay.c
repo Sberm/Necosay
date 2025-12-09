@@ -11,6 +11,8 @@ struct vec {
     void *raw;
 };
 
+char tab_in_space[] = "    "; /* 4 spaces */
+
 int print_neco(struct vec *vec, const size_t line_max)
 {
     const int line_len = line_max + PADDING * 2 + 2;
@@ -39,8 +41,13 @@ int print_neco(struct vec *vec, const size_t line_max)
         cur_len += PADDING;
 
         for (; str[idx] && str[idx] != '\n'; ++idx) {
-            printf("%c", str[idx]);
-            ++cur_len;
+            if (str[idx] == '\t') {
+                printf("%s", tab_in_space);
+                cur_len += sizeof(tab_in_space) - 1;
+            } else {
+                printf("%c", str[idx]);
+                ++cur_len;
+            }
         }
         if (str[idx] == '\n') // skip the new line
             ++idx;
@@ -156,15 +163,11 @@ int main(int argc, char **argv)
             size_t cur_line_len = strlen(line);
             size_t tab2space = cur_line_len;
             
-            for (int i = 0; i < cur_line_len; i++) {
-                if (line[i] == '\t') {
-                    for (int i = 0; i < 4; i++)
-                        copy(&vec, &" ", 1);
-                    tab2space += 3;
-                } else {
-                    copy(&vec, &line[i], 1);
-                }
-            }
+            for (int i = 0; i < cur_line_len; i++)
+                if (line[i] == '\t')
+                    tab2space += sizeof(tab_in_space) - 2;
+
+            copy(&vec, line, cur_line_len);
 
             if (line_max < tab2space)
                 line_max = tab2space;
