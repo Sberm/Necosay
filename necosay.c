@@ -141,7 +141,6 @@ int main(int argc, char **argv)
 {
     struct vec vec;
     memset(&vec, 0, sizeof(struct vec));
-    init(&vec);
     if (argc > 1) {
         size_t str_len = strlen(argv[1]);
 
@@ -150,6 +149,8 @@ int main(int argc, char **argv)
             printf("malloc failed\n");
             return -1;
         }
+        vec.size = str_len + 1;
+        vec.head = 0;
         memcpy(vec.raw, argv[1], str_len);
         ((char *)vec.raw)[str_len] = 0; // null term
         print_neco(&vec, str_len);
@@ -158,6 +159,8 @@ int main(int argc, char **argv)
         size_t line_max = 0;
         char *line = NULL;
         size_t line_cap = 0;
+
+        init(&vec);
 
         while (getline(&line, &line_cap, stdin) > 0) {
             size_t cur_line_len = strlen(line);
