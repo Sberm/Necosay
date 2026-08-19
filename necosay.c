@@ -4,6 +4,8 @@
 #include <assert.h>
 
 #define PADDING 3
+#define LEFT_LIMIT 24
+#define TWO_LINES 2
 
 struct vec {
     size_t size;
@@ -11,68 +13,20 @@ struct vec {
     void *raw;
 };
 
-char tab_in_space[] = "    "; /* 4 spaces */
+char const tab2space[] = "        "; /* 8 spaces and \0 */
+size_t const tab2space_len = sizeof(tab2space) - 1;
 
-int print_neco(struct vec *vec, const size_t line_max)
-{
-    const int line_len = line_max + PADDING * 2 + 2;
-    char *str = NULL;
-
-    if (!vec) {
-        printf("empty vector\n");
-        return -1;
-    }
-
-    str = vec->raw;
-    
-    for (int i = 0; i < line_len; i++)
-        printf("=");
-    printf("\n");
-
-    size_t idx = 0;
-    while (str[idx]) {
-        size_t cur_len = 0;
-
-        printf("|");
-        ++cur_len;
-
-        for (int i = 0; i < PADDING; i++)
-            printf(" ");
-        cur_len += PADDING;
-
-        for (; str[idx] && str[idx] != '\n'; ++idx) {
-            if (str[idx] == '\t') {
-                printf("%s", tab_in_space);
-                cur_len += sizeof(tab_in_space) - 1;
-            } else {
-                printf("%c", str[idx]);
-                ++cur_len;
-            }
-        }
-        if (str[idx] == '\n') // skip the new line
-            ++idx;
-
-        /* -1: the last | */
-        for (int i = 0; i < (int)line_len - (int)cur_len - 1; i++)
-            printf(" ");
-        printf("|\n");
-    }
-
-    for (int i = 0; i < line_len; i++)
-        printf("=");
-    printf("\n");
-
-    char bubble_left[] = 
+char const bubble_left[] =
 "  o"    "\n"
 "   o"   "\n"
 "     o" "\n";
 
-    char bubble_right[] = 
+char const bubble_right[] =
 "                        o"  "\n"
 "                       o"  "\n"
 "                     o"  "\n";
 
-    char cat[] = 
+char const cat[] =
 "        /\\      /\\"      "\n"
 "      -/--\\----/--\\-"    "\n"
 "     /  /\\      /\\  \\"  "\n"
@@ -81,7 +35,56 @@ int print_neco(struct vec *vec, const size_t line_max)
 "     \\    (_/\\_)    /"   "\n"
 "      --------------"      "\n"
 ;
-    if (line_max > 24)
+
+int print_neco(struct vec * restrict const vec, const size_t line_max)
+{
+    const int target_len = line_max + PADDING * 2 + TWO_LINES;
+    char * str = NULL;
+
+    if (!vec) {
+        printf("empty vector\n");
+        return -1;
+    }
+
+    str = vec->raw;
+
+    for (int i = 0; i < target_len; i++)
+        printf("=");
+    printf("\n");
+
+    size_t idx = 0;
+    while (str[idx]) {
+        size_t cur_len = 0;
+
+        printf("|");
+        cur_len += TWO_LINES/2;
+
+        for (int i = 0; i < PADDING; i++)
+            printf(" ");
+        cur_len += PADDING;
+
+        for (; str[idx]; ++idx) {
+            if (str[idx] == '\t') {
+                printf("%s", tab2space);
+                cur_len += tab2space_len;
+            } else if (str[idx] == '\n') {
+                ++idx;
+                break;
+            } else {
+                printf("%c", str[idx]);
+                ++cur_len;
+            }
+        }
+        for (size_t i = 0; (int)i < (int)target_len - (int)cur_len - TWO_LINES/2; i++)
+            printf(" ");
+        printf("|\n");
+    }
+
+    for (int i = 0; i < target_len; i++)
+        printf("=");
+    printf("\n");
+
+    if (line_max > LEFT_LIMIT)
         printf("%s", bubble_right);
     else
         printf("%s", bubble_left);
@@ -89,7 +92,7 @@ int print_neco(struct vec *vec, const size_t line_max)
     return 0;
 }
 
-/* we need to hold the data */
+/* off-line because we need the length of the longest line */
 void copy(struct vec *vec, void *src, size_t len)
 {
     if (!vec) {
@@ -140,21 +143,13 @@ void init(struct vec *vec)
 int main(int argc, char **argv)
 {
     struct vec vec;
-    memset(&vec, 0, sizeof(struct vec));
-    if (argc > 1) {
-        size_t str_len = strlen(argv[1]);
 
-        vec.raw = malloc(str_len + 1);
-        if (!vec.raw) {
-            printf("malloc failed\n");
-            return -1;
-        }
-        vec.size = str_len + 1;
-        vec.head = 0;
-        memcpy(vec.raw, argv[1], str_len);
-        ((char *)vec.raw)[str_len] = 0; // null term
-        print_neco(&vec, str_len);
-        free_vec(&vec);
+    memset(&vec, 0, sizeof(struct vec));
+    assert(tab2space_len > 0);
+
+    if (argc > 1) {
+        vec.raw = argv[1];
+        print_neco(&vec, strlen(argv[1]));
     } else {
         size_t line_max = 0;
         char *line = NULL;
@@ -163,20 +158,26 @@ int main(int argc, char **argv)
         init(&vec);
 
         while (getline(&line, &line_cap, stdin) > 0) {
-            size_t cur_line_len = strlen(line);
-            size_t tab2space = cur_line_len;
-            
-            for (int i = 0; i < cur_line_len; i++)
-                if (line[i] == '\t')
-                    tab2space += sizeof(tab_in_space) - 2;
+            size_t i = 0;
+            size_t cvtd_len = 0; /* length after converted tab to space */
 
-            copy(&vec, line, cur_line_len);
-
-            if (line_max < tab2space)
-                line_max = tab2space;
+            for (; line[i]; i++) {
+                if (line[i] == '\t') {
+                    /* replace 1 tab with tab2space spaces */
+                    cvtd_len += tab2space_len - 1;
+                }
+            }
+            cvtd_len += i;
+            if (i > 0 && line[i - 1] == '\n') {
+                assert(cvtd_len > 0);
+                cvtd_len -= 1;
+            }
+            copy(&vec, line, i);
+            if (line_max < cvtd_len)
+                line_max = cvtd_len;
         }
         print_neco(&vec, line_max);
-        free_vec(&vec);
+        free(line);
     }
     return 0;
 }
